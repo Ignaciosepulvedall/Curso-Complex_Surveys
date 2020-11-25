@@ -1,0 +1,96 @@
+---
+title: "Complex Surveys"
+author: "Ignacio Sepulveda"
+date: '2020'
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+```{r,echo=FALSE}
+library(survey)
+library(foreign)
+```
+
+# Chapter II: SIMPLE AND STRATIFIED SAMPLING.
+
+## ANALYZING SIMPLE RANDOM SAMPLES.
+
+Datos y primeras estimaciones.
+```{r}
+data(api)
+srs_design = svydesign(id=~1,fpc=~fpc,data=apisrs)
+srs_design
+svytotal(~enroll,srs_design)
+svymean(~enroll,srs_design)
+```
+
+
+Pero y los pesos?
+```{r}
+nofpc=svydesign(id=~1,weights=~pw,data=apisrs)
+nofpc
+svytotal(~enroll,nofpc)
+svymean(~enroll,nofpc)
+```
+
+Vemos que no hay cambios ni en la media ni en el total pero si los hay en la desviacion estandar
+
+Pueden ser factores igual,
+
+```{r}
+svytotal(~stype,srs_design)
+```
+
+Y hacer contrastes,
+
+```{r}
+means=svymean(~api00+api99,srs_design)
+means
+svycontrast(means,c(api00=1,api99=-1))
+#update para agregar variables.
+srs_design=update(srs_design, apidiff=api00-api99)
+srs_design=update(srs_design, apipct=apidiff/api99)
+svymean(~apidiff+apipct,srs_design)
+```
+
+## STRATIFIED SAMPLING
+
+```{r}
+strat_design = svydesign(id=~1,strata=~stype,fpc=~fpc,data=apistrat)
+strat_design
+svytotal(~enroll,strat_design)
+svymean(~enroll,strat_design)
+svytotal(~stype,strat_design)
+```
+
+## REPLICATE WEIGHTS
+```{r}
+chis_adult=read.dta("C:/Users/nasho/Documents/GitHub/Notes_COMPLEX_SURVEYS/Adult.dta")
+```
+
+```{r}
+#especificando los weights
+chis = svrepdesign(varibles=chis_adult[,1:418],
+                   repweights=chis_adult[,420:499],                    
+                   weights=chis_adult[,419],
+                   combined.weights=TRUE,
+                   type='other',scale=1,rscales=1)
+chis
+```
+
+```{r}
+#Creando nuestos weights
+
+boot_design = as.svrepdesign(strat_design,type='bootstrap',replicates=100)
+jk_design=as.svrepdesign(strat_design)
+svymean(~enroll,boot_design)
+svymean(~enroll,jk_design)
+```
+
+
+
